@@ -294,6 +294,62 @@ window._createSpec = function(taskId) {
   });
 };
 
+window._startEditModal = function(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  const modalId = `edit-modal-${id}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const body = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="form-row">
+        <label style="font-size:11px;color:var(--text-muted);min-width:80px;">创建时间</label>
+        <input id="${modalId}-created" type="date" value="${task.created || today}"
+          style="border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:13px;background:var(--bg-secondary);color:var(--text);width:160px;">
+      </div>
+      <div class="form-row">
+        <label style="font-size:11px;color:var(--text-muted);min-width:80px;">截止时间</label>
+        <input id="${modalId}-dueDate" type="date" value="${task.dueDate || ''}"
+          style="border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:13px;background:var(--bg-secondary);color:var(--text);width:160px;">
+      </div>
+      <div class="form-row">
+        <label style="font-size:11px;color:var(--text-muted);min-width:80px;">完成时间</label>
+        <input id="${modalId}-completed" type="date" value="${task.completed || ''}"
+          style="border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:13px;background:var(--bg-secondary);color:var(--text);width:160px;">
+      </div>
+    </div>`;
+  showModal(
+    `✏️ Edit Task ${id}`,
+    body,
+    async () => {
+      const created = document.getElementById(`${modalId}-created`)?.value || null;
+      const dueDate = document.getElementById(`${modalId}-dueDate`)?.value || null;
+      const completed = document.getElementById(`${modalId}-completed`)?.value || null;
+      const updates = {};
+      if (created) updates.created = created;
+      if (dueDate) updates.dueDate = dueDate;
+      if (completed) updates.completed = completed;
+      if (Object.keys(updates).length === 0) return;
+      const res = await api(`/projects/${state.viewedProject}/tasks/${id}`, {
+        method: 'PUT', body: updates
+      });
+      if (res.ok) {
+        if (task) {
+          if (updates.created !== undefined) task.created = updates.created;
+          if (updates.dueDate !== undefined) task.dueDate = updates.dueDate;
+          if (updates.completed !== undefined) task.completed = updates.completed;
+        }
+        prevTasksJson = JSON.stringify(state.tasks);
+        updateBoard(state);
+        toast('Task updated', 'success');
+      } else {
+        toast(res.error || 'Failed to update task', 'error');
+      }
+    },
+    'Save',
+    'btn-primary'
+  );
+};
+
 // --- File Explorer bridge callbacks ---
 window._loadFileContent = function(path) { loadFileContent(path, state); };
 window.refreshCanvas = refreshCanvas;

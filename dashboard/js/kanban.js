@@ -267,6 +267,16 @@ const ICON_TRASH = ICONS.trash;
 const ICON_SPEC = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>`;
 const ICON_SPEC_ADD = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>`;
 const ICON_SUBTASK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12h-8"/><path d="M21 6h-8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></svg>`;
+const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+
+function formatCreatedDate(dateStr) {
+  if (!dateStr) return '';
+  // Handle ISO timestamps like '2026-03-20T00:00:00.000Z'
+  if (dateStr.includes('T')) dateStr = dateStr.slice(0, 10);
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+}
 
 function formatDueDate(dateStr) {
   if (!dateStr) return '';
@@ -319,10 +329,17 @@ function cardInnerHTML(task) {
   const dueDateHtml = task.dueDate
     ? `<span class="due-date-badge${isOverdue(task.dueDate, task.status) ? ' overdue' : ''}" title="截止日期：${task.dueDate}">${formatDueDate(task.dueDate)}</span>`
     : '';
+  const createdBadge = task.created
+    ? `<span class="created-badge" title="创建时间：${task.created}">${formatCreatedDate(task.created)}</span>`
+    : '';
+  const completedBadge = task.status === 'done' && task.completed
+    ? `<span class="completed-badge" title="完成时间：${task.completed}">${formatCreatedDate(task.completed)}</span>`
+    : '';
 
   return `<div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div class="task-id mono">${task.id}</div>
       <button class="delete-btn" data-action="delete-task" data-id="${task.id}" data-title="${escHtml(task.title)}" data-spec="${task.specFile || ''}" data-subtasks="${subtaskCount}" title="Delete task">${ICON_TRASH}</button>
+      <button class="edit-btn" data-action="edit-task-modal" data-id="${task.id}" title="Edit task">${ICON_EDIT}</button>
     </div>
     ${isEditing
       ? `<input class="task-title-input" value="${escHtml(task.title)}" autofocus>`
@@ -332,6 +349,8 @@ function cardInnerHTML(task) {
         <span class="priority-pill priority-${task.priority}" data-action="toggle-priority" data-id="${task.id}" data-priority="${task.priority}">${task.priority}</span>
       </span>
       ${dueDateHtml}
+      ${createdBadge}
+      ${completedBadge}
       <span class="task-meta-actions">${subtaskBtn}${specBadge}</span>
     </div>${progressHtml}`;
 }
@@ -864,6 +883,7 @@ export function bindKanbanEvents(container) {
     const { action, id, title, priority, file } = btn.dataset;
     switch (action) {
       case 'edit-task':       startEdit(id); break;
+      case 'edit-task-modal': if (window._startEditModal) window._startEditModal(id); break;
       case 'edit-subtask':    startEditSubtask(id); break;
       case 'delete-task':     startDelete(id, title, btn.dataset.spec || null, parseInt(btn.dataset.subtasks) || 0); break;
       case 'toggle-expand':   if (window._toggleExpand) window._toggleExpand(id); break;
