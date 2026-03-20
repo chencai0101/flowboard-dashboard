@@ -640,7 +640,7 @@ app.put('/api/projects/:name/tasks/:id', (req, res) => {
   if (updates.status && updates.status !== 'done' && task.status === 'done') {
     updates.completed = null;
   }
-  const ALLOWED = ['title', 'status', 'priority', 'specFile', 'completed', 'dueDate'];
+  const ALLOWED = ['title', 'status', 'priority', 'specFile', 'completed', 'dueDate', 'created'];
   for (const key of ALLOWED) {
     if (Object.prototype.hasOwnProperty.call(updates, key)) {
       task[key] = updates[key];
